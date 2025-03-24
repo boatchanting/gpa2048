@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>绩点48</title>
+    <style>
+        body {
+            font-family: '微软雅黑', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .game-container {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            width: 480px;
+            margin: 20px auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-gap: 15px;
+        }
+
+        .tile {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            transition: transform 0.2s;
+        }
+
+        .score-board {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* 方块颜色方案 */
+        .tile-2 { background: #ff6b6b; }
+        .tile-4 { background: #ff9e6b; }
+        .tile-8 { background: #ffd76b; }
+        .tile-16 { background: #b5e877; }
+        .tile-32 { background: #6bc46b; }
+        .tile-64 { background: #6bd2ff; }
+        .tile-128 { background: #6b91ff; }
+        .tile-256 { background: #9c6bff; }
+        .tile-512 { background: #f56bff; }
+        .tile-1024 { background: #ff6bdf; }
+        .tile-2048 { background: #ffd700; }
+
+        @media (max-width: 500px) {
+            .grid { grid-template-columns: repeat(4, 80px); }
+            .tile { width: 80px; height: 80px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>绩点48</h1>
+    <div class="score-board">
+        当前绩点: <span id="score">0</span>
+        <button onclick="showDetails()">查看详细</button>
+    </div>
+    <div class="game-container">
+        <div class="grid" id="grid"></div>
+    </div>
+    <div class="controls">
+        <button onclick="swipe('up')">↑</button>
+        <div>
+            <button onclick="swipe('left')">←</button>
+            <button onclick="swipe('down')">↓</button>
+            <button onclick="swipe('right')">→</button>
+        </div>
+    </div>
+    <p>使用WASD或方向键操作，手机可滑动</p>
+    <p>制作者：马原课第五组</p>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const scoreDisplay = document.getElementById('score');
+        let tiles = [];
+        let score = 0;
+
+        // 方块等级映射表
+        const tileMap = {
+            2: '不及格',
+            4: '被捞到及格',
+            8: '及格',
+            16: '被捞到中',
+            32: '中',
+            64: '被卡到中',
+            128: '被捞到良',
+            256: '良',
+            512: '被捞到优',
+            1024: '优',
+            2048: '免修得优'
+        };
+
+        // 绩点转换表
+        const scoreMap = {
+            2: 0,
+            4: 2,
+            8: 2,
+            16: 3,
+            32: 3,
+            64: 3,
+            128: 4,
+            256: 4,
+            512: 5,
+            1024: 5,
+            2048: 5
+        };
+
+        // 学分绩点映射表
+        const gradeToPoint = {
+            '不及格': 0,
+            '被捞到及格': 2,
+            '及格': 2,
+            '被捞到中': 3,
+            '中': 3,
+            '被卡到中': 3,
+            '被捞到良': 4,
+            '良': 4,
+            '被捞到优': 5,
+            '优': 5,
+            '免修得优': 5
+        };
+
+        // 初始化游戏
+        function init() {
+            tiles = Array.from({ length: 16 }, () => null);
+            addTile();
+            addTile();
+            render();
+        }
+
+        // 生成新方块
+        function addTile() {
+            const empty = tiles.map((v, i) => i).filter(i => !tiles[i]);
+            if (!empty.length) return;
+            
+            const index = empty[Math.floor(Math.random() * empty.length)];
+            const newValue = Math.random() < 0.25 ? 4 : [2,8,16][Math.floor(Math.random()*3)];
+            
+            // 新增学分属性（1-3学分）
+            tiles[index] = {
+                value: newValue,
+                credit: Math.floor(Math.random() * 3) + 1,
+                merged: false
+            };
+        }
+
+        // 渲染界面
+        function render() {
+            grid.innerHTML = '';
+            tiles.forEach(tile => {
+                const div = document.createElement('div');
+                div.className = `tile tile-${tile ? tile.value : ''}`;
+                
+                if (tile) {
+                    const gradeName = tileMap[tile.value];
+                    div.innerHTML = `
+                        ${gradeName}<br>
+                        <small>${tile.credit}学分</small>
+                    `;
+                    div.style.fontSize = '16px';
+                }
+                
+                grid.appendChild(div);
+            });
+        }
+
+        // 处理滑动
+        function swipe(direction) {
+            let newTiles = [...tiles];
+            let moved = false;
+            
+            // 实现滑动逻辑（此处需要补充完整的移动合并逻辑）
+            
+            if (moved) {
+                addTile();
+                updateScore();
+                checkGameOver();
+                render();
+            }
+        }
+
+        // 更新分数
+        function updateScore() {
+            let totalCredit = 0;
+            let weightedPoint = 0;
+            
+            tiles.forEach(tile => {
+                if (!tile) return;
+                
+                const gradeName = tileMap[tile.value];
+                const point = gradeToPoint[gradeName];
+                totalCredit += tile.credit;
+                weightedPoint += tile.credit * point;
+            });
+            
+            // 计算平均学分绩点
+            const avgPoint = totalCredit ? (weightedPoint / totalCredit) : 0;
+            scoreDisplay.textContent = avgPoint.toFixed(2);
+            
+            return avgPoint;
+        }
+
+        // 显示详细信息
+        function showDetails() {
+            let detail = '方块分布：\n';
+            Object.keys(scoreMap).forEach(key => {
+                const count = tiles.filter(t => t == key).length;
+                if (count) detail += `${tileMap[key]} x${count}\n`;
+            });
+            alert(detail);
+        }
+
+        // 游戏结束检测
+        function checkGameOver() {
+            // 实现游戏结束逻辑判断
+        }
+
+        // 初始化游戏
+        init();
+
+        /** 处理滑动的核心逻辑 */
+        function swipe(direction) {
+            let newTiles = [...tiles];
+            let moved = false;
+
+            // 根据方向转换矩阵
+            const size = 4;
+            let matrix = [];
+            for (let i = 0; i < size; i++) {
+                matrix.push(newTiles.slice(i*size, i*size + size));
+            }
+
+            switch(direction) {
+                case 'up':
+                    matrix = transpose(matrix);
+                    matrix = matrix.map(row => slide(row));
+                    matrix = transpose(matrix);
+                    break;
+                case 'down':
+                    matrix = transpose(matrix);
+                    matrix = matrix.map(row => reverse(slide(reverse(row))));
+                    matrix = transpose(matrix);
+                    break;
+                case 'left':
+                    matrix = matrix.map(row => slide(row));
+                    break;
+                case 'right':
+                    matrix = matrix.map(row => reverse(slide(reverse(row))));
+                    break;
+            }
+
+            // 展平矩阵
+            newTiles = matrix.flat();
+            
+            // 检查是否移动
+            moved = !arraysEqual(newTiles, tiles);
+            
+            if (moved) {
+                tiles = newTiles;
+                addTile();
+                updateScore();
+                checkGameOver();
+                render();
+            }
+        }
+
+        /** 辅助函数：滑动单行 */
+        function slide(row) {
+            let newRow = row.filter(tile => tile !== null);
+            for(let i = 0; i < newRow.length - 1; i++) {
+                if(newRow[i].value === newRow[i+1].value && 
+                newRow[i].value !== 2048) {
+                    
+                    // 合并时学分相加，数值翻倍
+                    newRow[i] = {
+                        value: newRow[i].value * 2,
+                        credit: newRow[i].credit + newRow[i+1].credit,
+                        merged: true
+                    };
+                    newRow[i+1] = null;
+                    i++;
+                }
+            }
+            newRow = newRow.filter(tile => tile !== null);
+            while(newRow.length < 4) newRow.push(null);
+            return newRow;
+        }
+
+        /** 辅助函数：转置矩阵 */
+        function transpose(matrix) {
+            return matrix[0].map((col, i) => matrix.map(row => row[i]));
+        }
+
+        /** 辅助函数：反转数组 */
+        function reverse(arr) {
+            return [...arr].reverse();
+        }
+
+        /** 辅助函数：比较数组 */
+        function arraysEqual(a, b) {
+            return a.every((val, index) => val === b[index]);
+        }
+
+        /** 更新游戏结束检测 */
+        function checkGameOver() {
+            // 检查是否还有可移动空间
+            const hasEmpty = tiles.some(tile => tile === null);
+            if(hasEmpty) return;
+
+            // 检查横向是否有可合并项
+            for(let i = 0; i < 4; i++) {
+                const row = tiles.slice(i*4, i*4+4);
+                for(let j = 0; j < 3; j++) {
+                    if(row[j] === row[j+1]) return;
+                }
+            }
+
+            // 检查纵向是否有可合并项
+            for(let i = 0; i < 4; i++) {
+                for(let j = 0; j < 3; j++) {
+                    if(tiles[j*4 + i] === tiles[(j+1)*4 + i]) return;
+                }
+            }
+
+            // 游戏结束处理
+            setTimeout(() => {
+                alert('游戏结束！最终绩点：' + score.toFixed(1));
+                init();
+            }, 100);
+        }
+        
+        // 生成成绩单
+        function generateReport() {
+            let report = '成绩单\n';
+            let totalCredit = 0;
+            let weightedPoint = 0;
+            const courseNames = ["高等数学", "大学物理", "数据结构", "线性代数", 
+                                "计算机网络", "操作系统", "数据库原理", "机器学习"];
+            
+            tiles.forEach(tile => {
+                if (!tile) return;
+                
+                const course = courseNames[Math.floor(Math.random() * courseNames.length)];
+                const gradeName = tileMap[tile.value];
+                const point = gradeToPoint[gradeName];
+                
+                report += `${course} (${tile.credit}学分) - ${gradeName} [${point}]\n`;
+                totalCredit += tile.credit;
+                weightedPoint += tile.credit * point;
+            });
+            
+            const avgPoint = (weightedPoint / totalCredit).toFixed(2);
+            report += `\n平均学分绩点：${avgPoint}`;
+            return report;
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (['w','a','s','d'].includes(key)) {
+                swipe({w:'up',a:'left',s:'down',d:'right'}[key]);
+            }
+        });
+
+        // 移动端滑动控制
+        let touchStartX, touchStartY;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            
+            if (Math.abs(dx) > Math.abs(dy)) {
+                swipe(dx > 0 ? 'right' : 'left');
+            } else {
+                swipe(dy > 0 ? 'down' : 'up');
+            }
+        });
+    </script>
+</body>
+</html>
