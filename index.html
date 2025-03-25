@@ -1,413 +1,574 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>绩点48</title>
-    <style>
-        body {
-            font-family: '微软雅黑', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+  <meta charset="UTF-8">
+  <title>绩点48游戏</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: #faf8ef;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+    }
+    .header {
+      background: #bbada0;
+      padding: 15px;
+      text-align: center;
+      color: #fff;
+      font-size: 2em;
+      font-weight: bold;
+      width: 100%;
+    }
+    .score-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 400px;
+      margin: 20px;
+    }
+    .score, .transcript-btn {
+      background: #8f7a66;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      grid-template-rows: repeat(4, 100px);
+      gap: 10px;
+      background: #bbada0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .grid-cell {
+      width: 100px;
+      height: 100px;
+      background: #cdc1b4;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #776e65;
+    }
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #776e65;
+    }
 
-        .game-container {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            width: 480px;
-            margin: 20px auto;
-        }
+    /* 成绩单弹窗整体遮罩 */
+    .transcript-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width:100%;
+    height:100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 100px);
-            grid-gap: 15px;
-        }
+    /* 成绩单内容区域 */
+    .transcript-container {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 90%;
+    max-height: 90%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    overflow-y: auto;
+    }
 
-        .tile {
-            width: 100px;
-            height: 100px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: white;
-            transition: transform 0.2s;
-        }
+    /* 标题样式 */
+    .transcript-container h2 {
+    margin-top: 0;
+    font-size: 2em;
+    color: #333;
+    }
 
-        .score-board {
-            margin: 20px 0;
-            padding: 15px;
-            background: #fff3e0;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+    /* 成绩单表格样式 */
+    .transcript-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    }
+    .transcript-table th,
+    .transcript-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    }
+    .transcript-table th {
+    background-color: #f4f4f4;
+    color: #333;
+    }
 
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        /* 方块颜色方案 */
-        .tile-2 { background: #ff6b6b; }
-        .tile-4 { background: #ff9e6b; }
-        .tile-8 { background: #ffd76b; }
-        .tile-16 { background: #b5e877; }
-        .tile-32 { background: #6bc46b; }
-        .tile-64 { background: #6bd2ff; }
-        .tile-128 { background: #6b91ff; }
-        .tile-256 { background: #9c6bff; }
-        .tile-512 { background: #f56bff; }
-        .tile-1024 { background: #ff6bdf; }
-        .tile-2048 { background: #ffd700; }
-
-        @media (max-width: 500px) {
-            .grid { grid-template-columns: repeat(4, 80px); }
-            .tile { width: 80px; height: 80px; font-size: 14px; }
-        }
-    </style>
+    /* 关闭按钮样式 */
+    .close-btn {
+    background: #8f7a66;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    }
+    .close-btn:hover {
+    background: #7a6457;
+    }
+  </style>
 </head>
 <body>
-    <h1>绩点48</h1>
-    <div class="score-board">
-        当前绩点: <span id="score">0</span>
-        <button onclick="showDetails()">查看详细</button>
-    </div>
-    <div class="game-container">
-        <div class="grid" id="grid"></div>
-    </div>
-    <div class="controls">
-        <button onclick="swipe('up')">↑</button>
-        <div>
-            <button onclick="swipe('left')">←</button>
-            <button onclick="swipe('down')">↓</button>
-            <button onclick="swipe('right')">→</button>
-        </div>
-    </div>
-    <p>使用WASD或方向键操作，手机可滑动</p>
-    <p>制作者：马原课第五组</p>
+  <div class="header">绩点48游戏</div>
+  <div class="score-panel">
+    <div class="score" id="scoreDisplay">绩点: 0.00</div>
+    <button class="transcript-btn" onclick="generateTranscript()">我的成绩单</button>
+  </div>
+  <div class="grid-container" id="grid-container">
+    <!-- 16个网格 -->
+    <div class="grid-cell" id="cell-0-0"></div>
+    <div class="grid-cell" id="cell-1-0"></div>
+    <div class="grid-cell" id="cell-2-0"></div>
+    <div class="grid-cell" id="cell-3-0"></div>
+    <div class="grid-cell" id="cell-0-1"></div>
+    <div class="grid-cell" id="cell-1-1"></div>
+    <div class="grid-cell" id="cell-2-1"></div>
+    <div class="grid-cell" id="cell-3-1"></div>
+    <div class="grid-cell" id="cell-0-2"></div>
+    <div class="grid-cell" id="cell-1-2"></div>
+    <div class="grid-cell" id="cell-2-2"></div>
+    <div class="grid-cell" id="cell-3-2"></div>
+    <div class="grid-cell" id="cell-0-3"></div>
+    <div class="grid-cell" id="cell-1-3"></div>
+    <div class="grid-cell" id="cell-2-3"></div>
+    <div class="grid-cell" id="cell-3-3"></div>
+  </div>
+  <div class="footer">
+    <p>游戏说明：合并方块以提升绩点，每个方块代表一门课程的成绩。支持键盘（W/A/S/D）及滑动操作。</p>
+    <p><strong>马原汇报第五小组制作</strong></p>
 
-    <script>
-        const grid = document.getElementById('grid');
-        const scoreDisplay = document.getElementById('score');
-        let tiles = [];
-        let score = 0;
-
-        // 方块等级映射表
-        const tileMap = {
-            2: '不及格',
-            4: '被捞到及格',
-            8: '及格',
-            16: '被捞到中',
-            32: '中',
-            64: '被卡到中',
-            128: '被捞到良',
-            256: '良',
-            512: '被捞到优',
-            1024: '优',
-            2048: '免修得优'
-        };
-
-        // 绩点转换表
-        const scoreMap = {
-            2: 0,
-            4: 2,
-            8: 2,
-            16: 3,
-            32: 3,
-            64: 3,
-            128: 4,
-            256: 4,
-            512: 5,
-            1024: 5,
-            2048: 5
-        };
-
-        // 学分绩点映射表
-        const gradeToPoint = {
-            '不及格': 0,
-            '被捞到及格': 2,
-            '及格': 2,
-            '被捞到中': 3,
-            '中': 3,
-            '被卡到中': 3,
-            '被捞到良': 4,
-            '良': 4,
-            '被捞到优': 5,
-            '优': 5,
-            '免修得优': 5
-        };
-
-        // 初始化游戏
-        function init() {
-            tiles = Array.from({ length: 16 }, () => null);
-            addTile();
-            addTile();
-            render();
-        }
-
-        // 生成新方块
-        function addTile() {
-            const empty = tiles.map((v, i) => i).filter(i => !tiles[i]);
-            if (!empty.length) return;
-            
-            const index = empty[Math.floor(Math.random() * empty.length)];
-            const newValue = Math.random() < 0.25 ? 4 : [2,8,16][Math.floor(Math.random()*3)];
-            
-            // 新增学分属性（1-3学分）
-            tiles[index] = {
-                value: newValue,
-                credit: Math.floor(Math.random() * 3) + 1,
-                merged: false
-            };
-        }
-
-        // 渲染界面
-        function render() {
-            grid.innerHTML = '';
-            tiles.forEach(tile => {
-                const div = document.createElement('div');
-                div.className = `tile tile-${tile ? tile.value : ''}`;
-                
-                if (tile) {
-                    const gradeName = tileMap[tile.value];
-                    div.innerHTML = `
-                        ${gradeName}<br>
-                        <small>${tile.credit}学分</small>
-                    `;
-                    div.style.fontSize = '16px';
-                }
-                
-                grid.appendChild(div);
-            });
-        }
-
-        // 处理滑动
-        function swipe(direction) {
-            let newTiles = [...tiles];
-            let moved = false;
-            
-            // 实现滑动逻辑（此处需要补充完整的移动合并逻辑）
-            
-            if (moved) {
-                addTile();
-                updateScore();
-                checkGameOver();
-                render();
-            }
-        }
-
-        // 更新分数
-        function updateScore() {
-            let totalCredit = 0;
-            let weightedPoint = 0;
-            
-            tiles.forEach(tile => {
-                if (!tile) return;
-                
-                const gradeName = tileMap[tile.value];
-                const point = gradeToPoint[gradeName];
-                totalCredit += tile.credit;
-                weightedPoint += tile.credit * point;
-            });
-            
-            // 计算平均学分绩点
-            const avgPoint = totalCredit ? (weightedPoint / totalCredit) : 0;
-            scoreDisplay.textContent = avgPoint.toFixed(2);
-            
-            return avgPoint;
-        }
-
-        // 显示详细信息
-        function showDetails() {
-            let detail = '方块分布：\n';
-            Object.keys(scoreMap).forEach(key => {
-                const count = tiles.filter(t => t == key).length;
-                if (count) detail += `${tileMap[key]} x${count}\n`;
-            });
-            alert(detail);
-        }
-
-        // 游戏结束检测
-        function checkGameOver() {
-            // 实现游戏结束逻辑判断
-        }
-
-        // 初始化游戏
-        init();
-
-        /** 处理滑动的核心逻辑 */
-        function swipe(direction) {
-            let newTiles = [...tiles];
-            let moved = false;
-
-            // 根据方向转换矩阵
-            const size = 4;
-            let matrix = [];
-            for (let i = 0; i < size; i++) {
-                matrix.push(newTiles.slice(i*size, i*size + size));
-            }
-
-            switch(direction) {
-                case 'up':
-                    matrix = transpose(matrix);
-                    matrix = matrix.map(row => slide(row));
-                    matrix = transpose(matrix);
-                    break;
-                case 'down':
-                    matrix = transpose(matrix);
-                    matrix = matrix.map(row => reverse(slide(reverse(row))));
-                    matrix = transpose(matrix);
-                    break;
-                case 'left':
-                    matrix = matrix.map(row => slide(row));
-                    break;
-                case 'right':
-                    matrix = matrix.map(row => reverse(slide(reverse(row))));
-                    break;
-            }
-
-            // 展平矩阵
-            newTiles = matrix.flat();
-            
-            // 检查是否移动
-            moved = !arraysEqual(newTiles, tiles);
-            
-            if (moved) {
-                tiles = newTiles;
-                addTile();
-                updateScore();
-                checkGameOver();
-                render();
-            }
-        }
-
-        /** 辅助函数：滑动单行 */
-        function slide(row) {
-            let newRow = row.filter(tile => tile !== null);
-            for(let i = 0; i < newRow.length - 1; i++) {
-                if(newRow[i].value === newRow[i+1].value && 
-                newRow[i].value !== 2048) {
-                    
-                    // 合并时学分相加，数值翻倍
-                    newRow[i] = {
-                        value: newRow[i].value * 2,
-                        credit: newRow[i].credit + newRow[i+1].credit,
-                        merged: true
-                    };
-                    newRow[i+1] = null;
-                    i++;
-                }
-            }
-            newRow = newRow.filter(tile => tile !== null);
-            while(newRow.length < 4) newRow.push(null);
-            return newRow;
-        }
-
-        /** 辅助函数：转置矩阵 */
-        function transpose(matrix) {
-            return matrix[0].map((col, i) => matrix.map(row => row[i]));
-        }
-
-        /** 辅助函数：反转数组 */
-        function reverse(arr) {
-            return [...arr].reverse();
-        }
-
-        /** 辅助函数：比较数组 */
-        function arraysEqual(a, b) {
-            return a.every((val, index) => val === b[index]);
-        }
-
-        /** 更新游戏结束检测 */
-        function checkGameOver() {
-            // 检查是否还有可移动空间
-            const hasEmpty = tiles.some(tile => tile === null);
-            if(hasEmpty) return;
-
-            // 检查横向是否有可合并项
-            for(let i = 0; i < 4; i++) {
-                const row = tiles.slice(i*4, i*4+4);
-                for(let j = 0; j < 3; j++) {
-                    if(row[j] === row[j+1]) return;
-                }
-            }
-
-            // 检查纵向是否有可合并项
-            for(let i = 0; i < 4; i++) {
-                for(let j = 0; j < 3; j++) {
-                    if(tiles[j*4 + i] === tiles[(j+1)*4 + i]) return;
-                }
-            }
-
-            // 游戏结束处理
-            setTimeout(() => {
-                alert('游戏结束！最终绩点：' + score.toFixed(1));
-                init();
-            }, 100);
-        }
-        
-        // 生成成绩单
-        function generateReport() {
-            let report = '成绩单\n';
-            let totalCredit = 0;
-            let weightedPoint = 0;
-            const courseNames = ["高等数学", "大学物理", "数据结构", "线性代数", 
-                                "计算机网络", "操作系统", "数据库原理", "机器学习"];
-            
-            tiles.forEach(tile => {
-                if (!tile) return;
-                
-                const course = courseNames[Math.floor(Math.random() * courseNames.length)];
-                const gradeName = tileMap[tile.value];
-                const point = gradeToPoint[gradeName];
-                
-                report += `${course} (${tile.credit}学分) - ${gradeName} [${point}]\n`;
-                totalCredit += tile.credit;
-                weightedPoint += tile.credit * point;
-            });
-            
-            const avgPoint = (weightedPoint / totalCredit).toFixed(2);
-            report += `\n平均学分绩点：${avgPoint}`;
-            return report;
-        }
-
-        // 键盘控制
-        document.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if (['w','a','s','d'].includes(key)) {
-                swipe({w:'up',a:'left',s:'down',d:'right'}[key]);
-            }
-        });
-
-        // 移动端滑动控制
-        let touchStartX, touchStartY;
-        document.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        });
-        document.addEventListener('touchend', (e) => {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const dx = touchEndX - touchStartX;
-            const dy = touchEndY - touchStartY;
-            
-            if (Math.abs(dx) > Math.abs(dy)) {
-                swipe(dx > 0 ? 'right' : 'left');
-            } else {
-                swipe(dy > 0 ? 'down' : 'up');
-            }
-        });
-    </script>
+  </div>
 </body>
+<script>
+    // 游戏数据与配置
+    const gridSize = 4;
+    let grid = [];
+    let hasMoved = false;
+    
+    // 定义方块数值与显示文本的映射
+    const tileTexts = {
+      2: "不及格",
+      4: "被捞到及格",
+      8: "及格",
+      16: "被捞到中",
+      32: "中",
+      64: "被卡到中",
+      128: "被捞到良",
+      256: "良",
+      512: "被捞到优",
+      1024: "优",
+      2048: "免修得优"
+    };
+    
+    // 新方块只可能是这几种值
+    const newTileValues = [2, 4, 8, 16];
+    
+    // 计算每个方块转换为基础等级以及对应绩点（用于成绩单和游戏绩点显示）  
+    function getBaseGrade(value) {
+      if (value === 2) return "不及格";
+      if (value === 4 || value === 8) return "及格";
+      if (value === 16 || value === 32 || value === 64) return "中";
+      if (value === 128 || value === 256) return "良";
+      if (value === 512 || value === 1024) return "优";
+      if (value === 2048) return "免修得优";
+      return "";
+    }
+    function getGradePoint(value) {
+      const base = getBaseGrade(value);
+      // 不及格：0，及格：2，中：3，良：4，优/免修得优：5
+      switch (base) {
+        case "不及格": return 0;
+        case "及格": return 2;
+        case "中": return 3;
+        case "良": return 4;
+        case "优": return 5;
+        case "免修得优": return 5;
+        default: return 0;
+      }
+    }
+    
+    // 游戏初始化：建立空棋盘，并随机生成两个新方块
+    function initGame() {
+      grid = [];
+      for (let i = 0; i < gridSize; i++) {
+        let row = [];
+        for (let j = 0; j < gridSize; j++) {
+          row.push(0);
+        }
+        grid.push(row);
+      }
+      spawnTile();
+      spawnTile();
+      updateGrid();
+      updateScoreDisplay();
+    }
+    
+    // 在随机空格中生成一个新方块
+    function spawnTile() {
+      const emptyCells = [];
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if (grid[i][j] === 0) {
+            emptyCells.push({ i, j });
+          }
+        }
+      }
+      if (emptyCells.length === 0) return;
+      const { i, j } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      // 随机选择一个新方块数值
+      grid[i][j] = newTileValues[Math.floor(Math.random() * newTileValues.length)];
+    }
+    
+    // 更新页面显示（每个网格显示对应的文字或空白）
+    function updateGrid() {
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const cell = document.getElementById(`cell-${j}-${i}`);
+          if (grid[i][j] !== 0) {
+            cell.textContent = tileTexts[grid[i][j]];
+            // 可根据数值调整样式，比如背景色
+            cell.style.background = getBackgroundColor(grid[i][j]);
+          } else {
+            cell.textContent = "";
+            cell.style.background = "#cdc1b4";
+          }
+        }
+      }
+    }
+    
+    // 简单的背景色映射（可根据需要调整）
+    function getBackgroundColor(value) {
+      switch (value) {
+        case 2: return "#eee4da";
+        case 4: return "#ede0c8";
+        case 8: return "#f2b179";
+        case 16: return "#f59563";
+        case 32: return "#f67c5f";
+        case 64: return "#f65e3b";
+        case 128: return "#edcf72";
+        case 256: return "#edcc61";
+        case 512: return "#edc850";
+        case 1024: return "#edc53f";
+        case 2048: return "#edc22e";
+        default: return "#cdc1b4";
+      }
+    }
+    
+    // 计算并更新当前游戏绩点（使用每个非空方块绩点平均值）
+    function updateScoreDisplay() {
+      let total = 0, count = 0;
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if (grid[i][j] !== 0) {
+            total += getGradePoint(grid[i][j]);
+            count++;
+          }
+        }
+      }
+      const score = count === 0 ? 0 : (total / count).toFixed(2);
+      document.getElementById("scoreDisplay").textContent = "绩点: " + score;
+    }
+    
+    // 移动逻辑：将一行中的数字向左合并
+    function slideAndMerge(row) {
+      let arr = row.filter(val => val !== 0);
+      // 合并相邻且相同的数字（注意2048不可再合并）
+      for (let i = 0; i < arr.length - 1; i++) {
+        if (arr[i] === arr[i + 1] && arr[i] !== 2048) {
+          arr[i] = arr[i] * 2;
+          arr[i + 1] = 0;
+          i++; // 合并后跳过下一个
+          hasMoved = true;
+        }
+      }
+      arr = arr.filter(val => val !== 0);
+      // 补足空格
+      while (arr.length < gridSize) {
+        arr.push(0);
+      }
+      return arr;
+    }
+    
+    // 根据方向移动棋盘：left, right, up, down
+    function moveLeft() {
+      hasMoved = false;
+      for (let i = 0; i < gridSize; i++) {
+        let oldRow = grid[i].slice();
+        grid[i] = slideAndMerge(grid[i]);
+        if (!hasMoved && !arraysEqual(oldRow, grid[i])) {
+          hasMoved = true;
+        }
+      }
+      postMove();
+    }
+    
+    function moveRight() {
+      hasMoved = false;
+      for (let i = 0; i < gridSize; i++) {
+        let oldRow = grid[i].slice();
+        grid[i] = slideAndMerge(grid[i].slice().reverse()).reverse();
+        if (!hasMoved && !arraysEqual(oldRow, grid[i])) {
+          hasMoved = true;
+        }
+      }
+      postMove();
+    }
+    
+    function moveUp() {
+      hasMoved = false;
+      for (let j = 0; j < gridSize; j++) {
+        let col = [];
+        for (let i = 0; i < gridSize; i++) {
+          col.push(grid[i][j]);
+        }
+        let oldCol = col.slice();
+        col = slideAndMerge(col);
+        for (let i = 0; i < gridSize; i++) {
+          grid[i][j] = col[i];
+        }
+        if (!hasMoved && !arraysEqual(oldCol, col)) {
+          hasMoved = true;
+        }
+      }
+      postMove();
+    }
+    
+    function moveDown() {
+      hasMoved = false;
+      for (let j = 0; j < gridSize; j++) {
+        let col = [];
+        for (let i = 0; i < gridSize; i++) {
+          col.push(grid[i][j]);
+        }
+        let oldCol = col.slice();
+        col = slideAndMerge(col.reverse()).reverse();
+        for (let i = 0; i < gridSize; i++) {
+          grid[i][j] = col[i];
+        }
+        if (!hasMoved && !arraysEqual(oldCol, col)) {
+          hasMoved = true;
+        }
+      }
+      postMove();
+    }
+    
+    // 合并动作后处理：若有移动，则生成新方块、更新界面并检测游戏结束
+    function postMove() {
+      if (hasMoved) {
+        spawnTile();
+        updateGrid();
+        updateScoreDisplay();
+        if (checkGameOver()) {
+          setTimeout(() => {
+            alert("游戏结束！");
+          }, 200);
+        }
+      }
+    }
+    
+    // 检查两个数组是否相等
+    function arraysEqual(a, b) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }
+    
+    // 检查游戏是否结束（无空格且无可合并方块）
+    function checkGameOver() {
+      // 若有空格，继续游戏
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if (grid[i][j] === 0) return false;
+        }
+      }
+      // 检查水平方向和垂直方向的相邻方块是否有相同（且不为2048）
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if (j < gridSize - 1 && grid[i][j] === grid[i][j + 1] && grid[i][j] !== 2048) return false;
+          if (i < gridSize - 1 && grid[i][j] === grid[i + 1][j] && grid[i][j] !== 2048) return false;
+        }
+      }
+      return true;
+    }
+    
+    // 键盘事件处理（支持W/A/S/D和方向键）
+    document.addEventListener("keydown", (e) => {
+      switch (e.key.toLowerCase()) {
+        case "w":
+        case "arrowup":
+          moveUp();
+          break;
+        case "a":
+        case "arrowleft":
+          moveLeft();
+          break;
+        case "s":
+        case "arrowdown":
+          moveDown();
+          break;
+        case "d":
+        case "arrowright":
+          moveRight();
+          break;
+      }
+    });
+    
+    // 移动端触摸事件支持（简单识别上下左右滑动）
+    let touchStartX = 0, touchStartY = 0;
+    document.addEventListener("touchstart", (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+    document.addEventListener("touchend", (e) => {
+      let dx = e.changedTouches[0].clientX - touchStartX;
+      let dy = e.changedTouches[0].clientY - touchStartY;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // 横向滑动
+        if (dx > 30) {
+          moveRight();
+        } else if (dx < -30) {
+          moveLeft();
+        }
+      } else {
+        // 纵向滑动
+        if (dy > 30) {
+          moveDown();
+        } else if (dy < -30) {
+          moveUp();
+        }
+      }
+    });
+    
+    // 课程列表，用于生成成绩单（示例课程，可自行补充）
+    const courses = [
+      { name: "高等数学(上)", credit: 5 },
+      { name: "高等数学(下)", credit: 5 },
+      { name: "马克思主义基本原理", credit: 3 },
+      { name: "电工学（电工技术）", credit: 3 },
+      { name: "python程序设计", credit: 2.5 },
+      { name: "C++程序设计", credit: 2.5 },
+      { name: "计算方法", credit: 2 },
+      { name: "星期音乐会", credit: 1.5 },
+      { name: "玉石鉴赏", credit: 1.5 },
+      { name: "大学生安全教育", credit: 1.5 },
+      { name: "世界大战", credit: 1.5 },
+      { name: "专业导论", credit: 1.5 },
+      { name: "发展心理学", credit: 2 },
+      { name: "中国近现代史纲要", credit: 2},
+      { name: "体育(4)", credit: 1 },
+        { name: "体育(3)", credit: 1 },
+        { name: "概率论与数理统计", credit: 3 },
+        { name: "线性代数", credit: 3 },
+        { name: "离散数学", credit: 3 },
+        { name: "大学物理(上)", credit: 4 },
+        { name: "大学物理(下)", credit: 4 },
+        { name: "大学英语", credit: 3 },
+    ];
+    
+    // 生成成绩单：将棋盘中所有非空方块随机分配不同课程，并显示美化后的弹窗
+    function generateTranscript() {
+    // 收集所有非空方块的数值
+    let tiles = [];
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+        if (grid[i][j] !== 0) {
+            tiles.push(grid[i][j]);
+        }
+        }
+    }
+    if (tiles.length === 0) {
+        alert("当前没有成绩可以生成成绩单！");
+        return;
+    }
+    // 随机打乱课程列表（确保不重复）
+    let coursesCopy = courses.slice();
+    shuffleArray(coursesCopy);
+    // 如果方块数多于课程数，则只取已有课程数
+    const count = Math.min(tiles.length, coursesCopy.length);
+    let transcriptItems = [];
+    let totalCredit = 0, totalPoint = 0;
+    for (let i = 0; i < count; i++) {
+        const tileVal = tiles[i];
+        const baseGrade = getBaseGrade(tileVal);
+        const gradePoint = getGradePoint(tileVal);
+        const course = coursesCopy[i];
+        transcriptItems.push({
+        name: course.name,
+        credit: course.credit,
+        grade: baseGrade,
+        point: gradePoint
+        });
+        totalCredit += course.credit;
+        totalPoint += course.credit * gradePoint;
+    }
+    const overallGPA = (totalPoint / totalCredit).toFixed(2);
+    // 统计不及格门数
+    const failCount = transcriptItems.filter(item => item.grade === "不及格").length;
+    
+    // 构造成绩单 HTML 内容，使用美化后的 CSS 类名
+    let transcriptHTML = `
+        <div class="transcript-overlay">
+        <div class="transcript-container">
+            <h2>成绩单</h2>
+            <p>绩点: ${overallGPA} &nbsp;&nbsp; 不及格门数: ${failCount}</p>
+            <table class="transcript-table">
+            <tr>
+                <th>课程名称</th>
+                <th>学分</th>
+                <th>成绩</th>
+                <th>绩点</th>
+            </tr>`;
+    transcriptItems.forEach(item => {
+        transcriptHTML += `<tr>
+                <td>${item.name}</td>
+                <td>${item.credit}</td>
+                <td>${item.grade}</td>
+                <td>${item.point}</td>
+            </tr>`;
+    });
+    transcriptHTML += `
+            </table>
+            <button class="close-btn" onclick="this.parentElement.parentElement.remove()">关闭</button>
+        </div>
+        </div>`;
+    
+    // 将成绩单加入页面
+    const div = document.createElement("div");
+    div.innerHTML = transcriptHTML;
+    document.body.appendChild(div);
+    }
+    
+    // 工具函数：随机打乱数组
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+    
+    // 初始化游戏
+    document.addEventListener("DOMContentLoaded", initGame);
+    </script>    
 </html>
