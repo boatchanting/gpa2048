@@ -64,6 +64,60 @@
       font-size: 0.9em;
       color: #776e65;
     }
+    .footer-link {
+      color: #776e65;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s ease;
+    }
+    .footer-link:hover {
+      color: #8f7a66;
+    }
+
+    /*
+    模拟上下左右控件
+    用于对手机端进行适配
+    */
+    .controller {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .top-button {
+      width: 50px;
+      height: 50px;
+      background-color: #8f7a66;
+      border: 1px solid #776e65;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 20px;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+    }
+    .bottom-buttons {
+        display: flex;
+        justify-content: center;
+    }
+    .bottom-button {
+        width: 50px;
+        height: 50px;
+        background-color: #8f7a66;
+        border: 1px solid #776e65;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 5px;
+        font-size: 20px;
+        color: #fff;
+        cursor: pointer;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+    }
 
     /* 成绩单弹窗整体遮罩 */
     .transcript-overlay {
@@ -153,10 +207,20 @@
     <div class="grid-cell" id="cell-2-3"></div>
     <div class="grid-cell" id="cell-3-3"></div>
   </div>
+
+  <div class="controller">
+    <div class="top-button" id="up">↑</div>
+    <div class="bottom-buttons">
+        <div class="bottom-button" id="left">←</div>
+        <div class="bottom-button" id="down">↓</div>
+        <div class="bottom-button" id="right">→</div>
+    </div>
+  </div>
+
   <div class="footer">
     <p>游戏说明：合并方块以提升绩点，每个方块代表一门课程的成绩。支持键盘（W/A/S/D）及滑动操作。</p>
     <p><strong>马原汇报第五小组制作</strong></p>
-
+    <p><a href="https://boatchanting.github.io/funthings.html" class="footer-link">点我查看🚀更多好玩的项目🚀</a></p>
   </div>
 </body>
 <script>
@@ -380,7 +444,7 @@
         updateScoreDisplay();
         if (checkGameOver()) {
           setTimeout(() => {
-            alert("游戏结束！");
+            alert("游戏结束，请查看成绩单！");
           }, 200);
         }
       }
@@ -435,8 +499,14 @@
       }
     });
     
+    // 移动端触摸事件处理（使用模拟控件）
+    document.getElementById("up").addEventListener("click", moveUp);
+    document.getElementById("left").addEventListener("click", moveLeft);
+    document.getElementById("down").addEventListener("click", moveDown);
+    document.getElementById("right").addEventListener("click", moveRight);
+
     // 移动端触摸事件支持（简单识别上下左右滑动）
-    let touchStartX = 0, touchStartY = 0;
+    /*let touchStartX = 0, touchStartY = 0;
     document.addEventListener("touchstart", (e) => {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
@@ -459,7 +529,7 @@
           moveUp();
         }
       }
-    });
+    });*/
     
     // 课程列表，用于生成成绩单（示例课程，可自行补充）
     const courses = [
@@ -482,9 +552,14 @@
         { name: "概率论与数理统计", credit: 3 },
         { name: "线性代数", credit: 3 },
         { name: "离散数学", credit: 3 },
-        { name: "大学物理(上)", credit: 4 },
-        { name: "大学物理(下)", credit: 4 },
-        { name: "大学英语", credit: 3 },
+        { name: "大学物理(上)", credit: 3 },
+        { name: "大学物理(下)", credit: 3 },
+        { name: "大学英语", credit: 2 },
+        { name: "大学物理实验", credit: 1 },
+        { name: "机械制图", credit: 2.5 },
+        { name: "画法几何", credit: 2 },
+        { name: "形势与政策(4)", credit: 0.5 },
+        { name: "形势与政策(3)", credit: 0.5 },
     ];
     
     // 生成成绩单：将棋盘中所有非空方块随机分配不同课程，并显示美化后的弹窗
