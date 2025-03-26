@@ -12,6 +12,7 @@
       flex-direction: column;
       align-items: center;
       margin: 0;
+      min-height: 100vh;
     }
     .header {
       background: #bbada0;
@@ -39,25 +40,26 @@
     }
     .grid-container {
       display: grid;
-      grid-template-columns: repeat(4, 100px);
-      grid-template-rows: repeat(4, 100px);
-      gap: 10px;
+      grid-template-columns: repeat(4, 80px);
+      grid-template-rows: repeat(4, 80px);
+      gap: 8px;
       background: #bbada0;
-      padding: 10px;
-      border-radius: 5px;
+      padding: 8px;
+      border-radius: 4px;
     }
     .grid-cell {
-      width: 100px;
-      height: 100px;
+      width: 80px;
+      height: 80px;
       background: #cdc1b4;
-      border-radius: 5px;
+      border-radius: 4px;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       color: #776e65;
     }
+
     .footer {
       margin-top: 20px;
       text-align: center;
@@ -72,6 +74,43 @@
     }
     .footer-link:hover {
       color: #8f7a66;
+    }
+
+    /* 移动端优化 */
+    @media (max-width: 600px) {
+      .header {
+        font-size: 1.5em;
+        padding: 10px;
+      }
+      
+      .score-panel {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .score, .transcript-btn {
+        font-size: 1em;
+        padding: 8px 16px;
+        margin: 5px 0;
+      }
+      
+      .grid-cell {
+        font-size: 1em;
+      }
+      
+      .controller {
+        margin: 15px 0;
+      }
+      
+      .top-button, .bottom-button {
+        padding: 12px;
+        font-size: 1.2em;
+      }
+      
+      .footer {
+        font-size: 0.8em;
+        padding: 10px;
+      }
     }
 
     /*
@@ -245,7 +284,7 @@
     };
     
     // 新方块只可能是这几种值
-    const newTileValues = [2, 4, 8, 16];
+    const newTileValues = [2, 2, 2, 2, 4];
     
     // 计算每个方块转换为基础等级以及对应绩点（用于成绩单和游戏绩点显示）  
     function getBaseGrade(value) {
@@ -320,7 +359,7 @@
       }
     }
     
-    // 简单的背景色映射（可根据需要调整）
+    // 简单的背景色映射
     function getBackgroundColor(value) {
       switch (value) {
         case 2: return "#eee4da";
@@ -499,6 +538,46 @@
       }
     });
     
+    // 新增移动端滑动控制
+    (function() {
+      const gridContainer = document.getElementById('grid-container');
+      let touchStartX, touchStartY;
+
+      gridContainer.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) return; // 仅处理单指操作
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        e.preventDefault();
+      });
+
+      gridContainer.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // 阻止页面滚动
+      });
+
+      gridContainer.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length === 0) return;
+        
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const dx = touchEndX - touchStartX;
+        const dy = touchEndY - touchStartY;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        // 设置滑动阈值（最小滑动距离）
+        if (Math.max(absDx, absDy) < 10) return;
+
+        // 根据滑动方向触发对应操作
+        if (absDx > absDy) {
+          if (dx > 0) moveRight();
+          else moveLeft();
+        } else {
+          if (dy > 0) moveDown();
+          else moveUp();
+        }
+      });
+    })();
+
     // 移动端触摸事件处理（使用模拟控件）
     document.getElementById("up").addEventListener("click", moveUp);
     document.getElementById("left").addEventListener("click", moveLeft);
@@ -548,18 +627,18 @@
       { name: "发展心理学", credit: 2 },
       { name: "中国近现代史纲要", credit: 2},
       { name: "体育(4)", credit: 1 },
-        { name: "体育(3)", credit: 1 },
-        { name: "概率论与数理统计", credit: 3 },
-        { name: "线性代数", credit: 3 },
-        { name: "离散数学", credit: 3 },
-        { name: "大学物理(上)", credit: 3 },
-        { name: "大学物理(下)", credit: 3 },
-        { name: "大学英语", credit: 2 },
-        { name: "大学物理实验", credit: 1 },
-        { name: "机械制图", credit: 2.5 },
-        { name: "画法几何", credit: 2 },
-        { name: "形势与政策(4)", credit: 0.5 },
-        { name: "形势与政策(3)", credit: 0.5 },
+      { name: "体育(3)", credit: 1 },
+      { name: "概率论与数理统计", credit: 3 },
+      { name: "线性代数", credit: 3 },
+      { name: "离散数学", credit: 3 },
+      { name: "大学物理(上)", credit: 3 },
+      { name: "大学物理(下)", credit: 3 },
+      { name: "大学英语", credit: 2 },
+      { name: "大学物理实验", credit: 1 },
+      { name: "机械制图", credit: 2.5 },
+      { name: "画法几何", credit: 2 },
+      { name: "形势与政策(4)", credit: 0.5 },
+      { name: "形势与政策(3)", credit: 0.5 },
     ];
     
     // 生成成绩单：将棋盘中所有非空方块随机分配不同课程，并显示美化后的弹窗
@@ -645,5 +724,30 @@
     
     // 初始化游戏
     document.addEventListener("DOMContentLoaded", initGame);
-    </script>    
+    </script>
+    <style>
+
+
+    </style>
+    <script>//马克思语录
+      const quotes = [
+          "哲学家们只是用不同的方式解释世界，而问题在于改变世界。",
+          "全世界无产者，联合起来！",
+          "资本来到世间，从头到脚每个毛孔都滴着血和肮脏的东西。",
+          "历史把那些为共同目标工作因而自己变得高尚的人称为最伟大的人物。",
+          "社会的进步就是人类对美的追求的结晶。"
+      ];
+
+      function showRandomQuote() {
+          const randomIndex = Math.floor(Math.random() * quotes.length);
+          // 使用innerHTML实现斜体包裹 [[4]]
+          document.getElementById('quote').innerHTML = `<i>${quotes[randomIndex]}</i>`;
+      }
+
+      // 页面加载自动播放 [[7]]
+      document.addEventListener('DOMContentLoaded', () => {
+          showRandomQuote(); // 立即显示第一条
+          setInterval(showRandomQuote, 20000);
+      });
+    </script>
 </html>
