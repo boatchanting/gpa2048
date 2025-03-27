@@ -223,8 +223,10 @@
 </head>
 <body>
   <div class="header">绩点48游戏</div>
+  
   <div class="score-panel">
     <div class="score" id="scoreDisplay">绩点: 0.00</div>
+    
     <button class="transcript-btn" onclick="generateTranscript()">我的成绩单</button>
   </div>
   <div class="grid-container" id="grid-container">
@@ -247,7 +249,7 @@
     <div class="grid-cell" id="cell-3-3"></div>
     <div id="tile-container"></div>
   </div>
-
+  
   <div class="controller">
     <div class="top-button" id="up">↑</div>
     <div class="bottom-buttons">
@@ -256,7 +258,7 @@
         <div class="bottom-button" id="right">→</div>
     </div>
   </div>
-
+  <div class="score" id="highestScoreDisplay" style="margin: 20px 0;">历史最高绩点: 0.00</div>
   <div class="footer">
     <p><a href="https://boatchanting.github.io/gpa2048/rules.html" target="_blank" class="footer-link"> 详细游戏说明点我查看🚀</a></p>
     <p>合并方块以提升绩点，每个方块代表一门课程的成绩。支持键盘（W/A/S/D）及滑动操作。</p>
@@ -378,21 +380,38 @@
         default: return "#cdc1b4";
       }
     }
-    
+
+    // 初始化最高绩点（从本地存储读取或默认0）
+    let highestScore = parseFloat(localStorage.getItem('highestScore')) || 0;
+
     // 计算并更新当前游戏绩点（使用每个非空方块绩点平均值）
     function updateScoreDisplay() {
-      let total = 0, count = 0;
-      for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-          if (grid[i][j] !== 0) {
-            total += getGradePoint(grid[i][j]);
-            count++;
-          }
+        let total = 0, count = 0;
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                if (grid[i][j] !== 0) {
+                    total += getGradePoint(grid[i][j]);
+                    count++;
+                }
+            }
         }
-      }
-      const score = count === 0 ? 0 : (total / count).toFixed(2);
-      document.getElementById("scoreDisplay").textContent = "绩点: " + score;
+        const currentScore = count === 0 ? 0 : parseFloat((total / count).toFixed(2));
+        const scoreDisplay = document.getElementById("scoreDisplay");
+        scoreDisplay.textContent = "绩点: " + currentScore.toFixed(2);
+
+        // 更新历史最高绩点
+        if (currentScore > highestScore) {
+            highestScore = currentScore;
+            document.getElementById("highestScoreDisplay").textContent = 
+                "历史最高绩点: " + highestScore.toFixed(2);
+            // 保存到本地存储
+            localStorage.setItem('highestScore', highestScore);
+        }
     }
+
+    // 初始化时显示历史最高分（在页面加载时调用）
+    document.getElementById("highestScoreDisplay").textContent = 
+        "历史最高绩点: " + highestScore.toFixed(2);
     
     // 移动逻辑：将一行中的数字向左合并
     function slideAndMerge(row) {
